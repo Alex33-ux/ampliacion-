@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Cartas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            font-size: 40px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            width: 100px;
+            text-align: center;
+            background-color: white;
+            margin: 10px auto;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        button {
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .alta { background-color: #4caf50; color: white; }
+        .baja { background-color: #f44336; color: white; }
+        .mismo-color { background-color: #2196f3; color: white; }
+        .distinto-color { background-color: #ff9800; color: white; }
+        .suma { background-color: #9c27b0; color: white; }
+        .comodin { background-color: #607d8b; color: white; }
+        .plantarse { background-color: #ffeb3b; color: black; }
+
+    </style>
+</head>
+<body>
+    <h1>Juego de Cartas</h1>
+
+    <div class="game-info">
+        <div>Vidas: <span id="vidas">3</span></div>
+        <div>Contador: <span id="contador">1</span></div>
+    </div>
+
+    <div class="card" id="current-card">3♣</div>
+
+    <div class="buttons">
+        <button class="alta" id="btn-alta">ALTA (15)</button>
+        <button class="baja" id="btn-baja">BAJA (15)</button>
+        <button class="mismo-color" id="btn-mismo-color">MISMO COLOR (5)</button>
+        <button class="distinto-color" id="btn-distinto-color">DISTINTO COLOR (5)</button>
+        <button class="suma" id="btn-suma">SUMA &lt; 11 (10)</button>
+        <button class="comodin" id="btn-comodin">COMODÍN (3)</button>
+        <button class="plantarse" id="btn-plantarse">PLANTARSE</button>
+    </div>
+
+    <script>
+        const valores = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+        const palos = ["♠", "♣", "♥", "♦"];
+        const colores = { "♠": "negro", "♣": "negro", "♥": "rojo", "♦": "rojo" };
+
+        let vidas = 3;
+        let contador = 1;
+        let botones = {
+            alta: 15,
+            baja: 15,
+            "mismo-color": 5,
+            "distinto-color": 5,
+            suma: 10,
+            comodin: 3
+        };
+        let comboRacha = 0;
+
+        const vidasSpan = document.getElementById("vidas");
+        const contadorSpan = document.getElementById("contador");
+        const currentCardDiv = document.getElementById("current-card");
+
+        let currentCard = generarCarta();
+        renderCard(currentCard);
+
+        function generarCarta() {
+            const valor = valores[Math.floor(Math.random() * valores.length)];
+            const palo = palos[Math.floor(Math.random() * palos.length)];
+            return { valor, palo };
+        }
+
+        function valorNumerico(carta) {
+            if (carta.valor === "A") return 1;
+            if (["J", "Q", "K"].includes(carta.valor)) return 10;
+            return parseInt(carta.valor);
+        }
+
+        function renderCard(carta) {
+            currentCardDiv.textContent = `${carta.valor}${carta.palo}`;
+        }
+
+        function actualizarBotones() {
+            for (const [key, value] of Object.entries(botones)) {
+                const btn = document.getElementById(`btn-${key}`);
+                btn.textContent = `${key.toUpperCase()} (${value})`;
+                btn.disabled = value <= 0;
+            }
+        }
+
+        function perderVida() {
+            vidas--;
+            comboRacha = 0;
+            if (vidas <= 0) {
+                alert("Has perdido todas tus vidas. Fin de la partida. Puntuación: 0");
+                resetJuego();
+            }
+            vidasSpan.textContent = vidas;
+        }
+
+        function resetJuego() {
+            vidas = 3;
+            contador = 1;
+            botones = {
+                alta: 15,
+                baja: 15,
+                "mismo-color": 5,
+                "distinto-color": 5,
+                suma: 10,
+                comodin: 3
+            };
+            comboRacha = 0;
+            currentCard = generarCarta();
+            renderCard(currentCard);
+            actualizarBotones();
+        }
+
+        function levantarCarta(accion) {
+            const nuevaCarta = generarCarta();
+            const esAlta = valorNumerico(nuevaCarta) > valorNumerico(currentCard);
+            const esMismoColor = colores[nuevaCarta.palo] === colores[currentCard.palo];
+            const sumaMenor11 = valorNumerico(nuevaCarta) + valorNumerico(currentCard) < 11;
+
+            let acierto = false;
+
+            switch (accion) {
+                case "alta":
+                    acierto = esAlta;
+                    break;
+                case "baja":
+                    acierto = !esAlta && valorNumerico(nuevaCarta) !== valorNumerico(currentCard);
+                    break;
+                case "mismo-color":
+                    acierto = esMismoColor;
+                    break;
+                case "distinto-color":
+                    acierto = !esMismoColor;
+                    break;
+                case "suma":
+                    acierto = sumaMenor11;
+                    break;
+                case "comodin":
+                    acierto = true;
+                    break;
+            }
+
+            if (acierto) {
+                contador++;
+                comboRacha++;
+                if (comboRacha === 5) {
+                    for (const key of Object.keys(botones)) {
+                        if (key !== "comodin") botones[key]++;
+                    }
+                    comboRacha = 0;
+                }
+            } else {
+                perderVida();
+            }
+
+            if (accion !== "comodin") botones[accion]--;
+
+            if (vidas > 0) {
+                currentCard = nuevaCarta;
+                renderCard(currentCard);
+                contadorSpan.textContent = contador;
+                actualizarBotones();
+            }
+        }
+
+        document.getElementById("btn-alta").addEventListener("click", () => levantarCarta("alta"));
+        document.getElementById("btn-baja").addEventListener("click", () => levantarCarta("baja"));
+        document.getElementById("btn-mismo-color").addEventListener("click", () => levantarCarta("mismo-color"));
+        document.getElementById("btn-distinto-color").addEventListener("click", () => levantarCarta("distinto-color"));
+        document.getElementById("btn-suma").addEventListener("click", () => levantarCarta("suma"));
+        document.getElementById("btn-comodin").addEventListener("click", () => levantarCarta("comodin"));
+        document.getElementById("btn-plantarse").addEventListener("click", () => {
+            alert(`Te has plantado. Puntuación final: ${contador}`);
+            resetJuego();
+        });
+
+        actualizarBotones();
+    </script>
+</body>
+</html>
